@@ -48,7 +48,6 @@ def mail_success(version) {
         mirrorURL = "https://mirror.openshift.com/enterprise/online-stg"
     }
 
-    def oaBrewURL = readFile("results/openshift-ansible-brew.url")
     def oseBrewURL = readFile("results/ose-brew.url")
     def puddleName = readFile("results/ose-puddle.name")
     def changelogs = readFile("results/changelogs.txt")
@@ -81,7 +80,6 @@ ${image_details}
 
 Brew:
   - Openshift: ${oseBrewURL}
-  - OpenShift Ansible: ${oaBrewURL}
 
 Jenkins job: ${env.BUILD_URL}
 
@@ -91,29 +89,92 @@ ${changelogs}
 
 // Expose properties for a parameterized build
 properties(
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '720'
+            )
+        ),
         [
-                buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720')),
-                [$class              : 'ParametersDefinitionProperty',
-                 parameterDefinitions:
-                         [
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Major Version', name: 'OSE_MAJOR'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,bbarcaro@redhat.com,mlamouri@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                                 [$class             : 'hudson.model.ChoiceParameterDefinition', choices: "enterprise\nenterprise:pre-release\nonline:int\nonline:stg", description:
-                                         '''
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                [
+                    name: 'TARGET_NODE',
+                    description: 'Jenkins agent node',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'openshift-build-1'
+                ],
+                [
+                    name: 'OSE_MAJOR',
+                    description: 'OSE Major Version',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: ''
+                ],
+                [
+                    name: 'OSE_MINOR',
+                    description: 'OSE Minor Version',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: ''
+                ],
+                [
+                    name: 'MAIL_LIST_SUCCESS',
+                    description: 'Success Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: [
+                        'aos-cicd@redhat.com',
+                        'aos-qe@redhat.com',
+                        'jupierce@redhat.com',
+                        'smunilla@redhat.com',
+                        'ahaile@redhat.com'
+                    ].join(',')
+                ],
+                [
+                    name: 'MAIL_LIST_FAILURE',
+                    description: 'Failure Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: [
+                        'jupierce@redhat.com',
+                        'smunilla@redhat.com',
+                        'ahaile@redhat.com',
+                        'bbarcaro@redhat.com',
+                        'mlamouri@redhat.com'
+                    ].join(',')
+                ],
+                [
+                    name: 'BUILD_MODE',
+                    description: '''
 enterprise                {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 enterprise:pre-release    {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
-''', name: 'BUILD_MODE'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build container images?', name: 'BUILD_CONTAINER_IMAGES'],
-                                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
-                         ]
+''',
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: [
+                        "enterprise",
+                        "enterprise:pre-release",
+                        "online:int",
+                        "online:stg"
+                    ].join("\n")
                 ],
-                disableConcurrentBuilds()
-        ]
+                [
+                    name: 'BUILD_CONTAINER_IMAGES',
+                    description: 'Build container images?',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: true
+                ],
+                [
+                    name: 'MOCK',
+                    description: 'Mock run to pickup new Jenkins parameters?.',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+            ]
+        ],
+        disableConcurrentBuilds()
+    ]
 )
 
 if (MOCK.toBoolean()) {
