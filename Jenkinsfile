@@ -54,7 +54,6 @@ properties(
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
                         'aos-team-art@redhat.com',
-                        // 'aos-art-requests@redhat.com'
                     ].join(',')
                 ],
                 [
@@ -65,6 +64,7 @@ properties(
                 ]
             ]
         ],
+        disableConcurrentBuilds()
     ]
 )
 
@@ -90,6 +90,8 @@ node("openshift-build-1") {
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize(false)
+
+    currentBuild.displayName = "v${SYNC_VERSION} RepoSync"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
