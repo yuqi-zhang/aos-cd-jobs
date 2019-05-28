@@ -5,6 +5,29 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
+    properties(
+	[
+	    pipelineTriggers(
+		[
+		    [
+			$class: 'CIBuildTrigger',
+			noSquash: false,
+			providerData: [
+			    $class: 'ActiveMQSubscriberProviderData',
+			    checks: [
+			    ],
+			    name: 'SIGNING - ART UMB - Prod',
+			    overrides: [
+				topic: 'Consumer.openshift-art-signatory.prod.VirtualTopic.eng.robosignatory.art.sign'
+			    ],
+			    selector: '',
+			    timeout: null
+			]
+		    ]
+		]
+	    )
+	]
+    )
     // NOTE FOR JOB PARAMETERS:
     //
     // - THIS JOB CAN RUN CONCURRENTLY. Each build will be for a
@@ -32,6 +55,7 @@ node {
 
 
     stage('collect artifact') {
+	echo "${env.CI_MESSAGE}"
     }
 
 
